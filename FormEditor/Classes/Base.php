@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace FormEditor\Classes;
 
-class Base
+abstract class Base
 {
 	public function init()
 	{
