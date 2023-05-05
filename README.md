@@ -1,4 +1,4 @@
-### PHP Class FormEditor
+### Form Editor Plugin
 
 Within the FormEditor/index.php file, we will load classes based on the paths that we define here.
 e.g:
