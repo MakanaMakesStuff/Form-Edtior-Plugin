@@ -1,6 +1,6 @@
-### PHP Class FormEdtior
+### PHP Class FormEditor
 
-Within the FormEdtior/index.php file, we will load classes based on the paths that we define here.
+Within the FormEditor/index.php file, we will load classes based on the paths that we define here.
 e.g:
 
 ```php
@@ -25,7 +25,7 @@ function loadClasses()
 	}
 
 	foreach ($loaded_classes as $class) {
-		if (strpos($class, 'FormEdtior\\') === 0 && class_exists($class)) {
+		if (strpos($class, 'FormEditor\\') === 0 && class_exists($class)) {
 			$instance = new $class();
 			$methods = get_class_methods($instance);
 			if (in_array('init', $methods)) {

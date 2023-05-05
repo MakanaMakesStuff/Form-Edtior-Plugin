@@ -2,7 +2,7 @@
 
 /**
  * Base Class
- * @package FormEdtior Base Class
+ * @package FormEditor Base Class
  * @author Makanaokeakua Edwards | Makri Software Development
  * @copyright 2023 @ Makri Software Development
  * @license Proprietary
@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace FormEdtior\Classes;
+namespace FormEditor\Classes;
 
 class Base
 {

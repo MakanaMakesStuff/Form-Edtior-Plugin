@@ -10,9 +10,9 @@
 
 declare(strict_types=1);
 
-namespace FormEdtior\Types;
+namespace FormEditor\Types;
 
-use FormEdtior\Classes\Base;
+use FormEditor\Classes\Base;
 
 class FormOptions extends Base
 {

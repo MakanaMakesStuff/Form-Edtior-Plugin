@@ -2,7 +2,7 @@
 
 /**
  * Form Post Type
- * @package Form Edtior
+ * @package Form Editor
  * @author Makanaokeakua Edwards | Makri Software Development
  * @copyright 2023 @ Makri Software Development
  * @license Proprietary
@@ -10,11 +10,11 @@
 
 declare(strict_types=1);
 
-namespace FormEdtior\Types;
+namespace FormEditor\Types;
 
-use FormEdtior\Classes\Base;
+use FormEditor\Classes\Base;
 
-class Forms extends Base
+class Form extends Base
 {
     public function init()
     {
