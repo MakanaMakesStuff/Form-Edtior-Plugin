@@ -30,7 +30,6 @@ function loadClasses()
 	foreach ($class_files as $file) {
 		if (file_exists($file)) {
 			require_once $file;
-			$loaded_classes[] = $base . "Classes\\" . basename($file, '.php');
 		}
 	}
 
