@@ -1,13 +1,13 @@
 <?php
 
 /**
- * @package Loader
+ * @package FormEdtior
  * @version 1.0.0
  */
 /*
-Plugin Name: Loader
-Plugin URI: https://github.com/MakanaMakesStuff/PHPClassLoader
-Description: This is an example plugin using a class loader
+Plugin Name: FormEdtior
+Plugin URI: https://github.com/MakanaMakesStuff/PHPClassFormEdtior
+Description: This is an example plugin using a class FormEdtior
 Author: Makanaokeakua Edwards | Makri Software Development
 */
 
@@ -16,13 +16,13 @@ add_action('admin_menu', 'add_menu');
 
 function add_menu()
 {
-	add_menu_page(__('Loader'), __('Loader'), 'manage_options', 'loader-menu-page', 'loader_page', '', 0);
-	add_submenu_page('loader-menu-page', __('Hello'), __('Hello'), 'manage_options', 'edit.php?post_type=hello', '', 0);
+	add_menu_page(__('FormEdtior'), __('FormEdtior'), 'manage_options', 'FormEdtior-menu-page', 'FormEdtior_page', '', 0);
+	add_submenu_page('FormEdtior-menu-page', __('Hello'), __('Hello'), 'manage_options', 'edit.php?post_type=hello', '', 0);
 }
 
-function loader_page()
+function FormEdtior_page()
 {
-	echo '<h1>Welcome to the Loader Plugin page!</h1>';
+	echo '<h1>Welcome to the FormEdtior Plugin page!</h1>';
 }
 
 function loadClasses()
@@ -46,7 +46,7 @@ function loadClasses()
 	}
 
 	foreach ($loaded_classes as $class) {
-		if (strpos($class, 'Loader\\') === 0 && class_exists($class)) {
+		if (strpos($class, 'FormEdtior\\') === 0 && class_exists($class)) {
 			$instance = new $class();
 			$methods = get_class_methods($instance);
 			if (in_array('init', $methods)) {
