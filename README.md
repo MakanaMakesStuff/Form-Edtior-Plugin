@@ -24,15 +24,33 @@ function loadClasses()
 		}
 	}
 
+	$order = [];
+
 	foreach($loaded_classes as $class) {
 		
 		if(class_exists($class)) {
 			$init = new $class();
 
-			if(method_exists($init, 'init')) {
-				$init->init();
+			if(property_exists($init, 'priority')) {
+				$order[] = [
+					'priority' => $init->priority,
+					'instance' => $init
+				];
+			} else {
+				$order[] = [
+					'priority' => 0,
+					'instance' => $init
+				];
 			}
 		} 
+	}
+
+	usort($order, function($a, $b) {
+		return $a['priority'] - $b['priority'];
+	});
+
+	foreach($order as $class) {
+		$class['instance']->init();
 	}
 }
 ```

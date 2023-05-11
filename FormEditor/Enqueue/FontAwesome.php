@@ -22,7 +22,7 @@ class FontAwesome extends Base
 
 	public function enqueue()
 	{
-		wp_enqueue_style('fontawesome', 'https://use.fontawesome.com/releases/v5.8.1/css/all.css');
+		wp_enqueue_style('font-awesome', 'https://use.fontawesome.com/releases/v5.8.1/css/all.css');
 	}
 }
 ?>

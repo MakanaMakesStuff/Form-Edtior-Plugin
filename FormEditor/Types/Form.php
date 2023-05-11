@@ -16,6 +16,8 @@ use FormEditor\Classes\Base;
 
 class Form extends Base
 {
+    public $priority = 1;
+    
     public function init()
     {
         add_action('init', [$this, 'registerTypes']);
