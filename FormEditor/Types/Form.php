@@ -36,13 +36,13 @@ class Form extends Base
                 'singular_name' => $singular,
                 'menu_name' => $plural,
                 'name_admin_bar' => $singular,
-                'add_new' => sprintf(__('New %s', 'archipelago'), $singular),
-                'add_new_item' => sprintf(__('Add New %s', 'archipelago'), $singular),
-                'new_item' => sprintf(__('New %s', 'archipelago'), $singular),
-                'edit_item' => sprintf(__('Edit %s', 'archipelago'), $singular),
-                'view_item' => sprintf(__('View %s', 'archipelago'), $singular),
-                'all_items' => sprintf(__('%s', 'archipelago'), $plural),
-                'search_items' => sprintf(__('Search %s', 'archipelago'), $plural),
+                'add_new' => sprintf(__('New %s'), $singular),
+                'add_new_item' => sprintf(__('Add New %s'), $singular),
+                'new_item' => sprintf(__('New %s'), $singular),
+                'edit_item' => sprintf(__('Edit %s'), $singular),
+                'view_item' => sprintf(__('View %s'), $singular),
+                'all_items' => sprintf(__('%s'), $plural),
+                'search_items' => sprintf(__('Search %s'), $plural),
             ],
             'public' => false,
             'show_in_rest' => true,
@@ -68,38 +68,44 @@ class Form extends Base
 
     public function loadMetaBoxes()
     {
-        add_meta_box('form_entry_meta', __('Form', 'archipelago'), [$this, 'doMetaBoxes'], 'form', 'advanced', 'high');
+        add_meta_box('form_entry_meta', __('Form'), [$this, 'doMetaBoxes'], 'form', 'advanced', 'high');
     }
 
-    function buildOptions($arr, $key, $name, $options = null)
+    function buildOptions($arr, $key, $options)
     {
-        $inputName = $name . '[' . $arr['slug'] . ']';
 ?>
-        <li>
-            <input type="text" name="<?php echo $inputName ?>[label]" style="display: none" value="<?php echo $arr['name'] ?>">
-            <input type="text" name="<?php echo $inputName ?>[slug]" style="display: none" value="<?php echo $arr['slug'] ?>">
+            <?php if (isset($arr['children'])) { 
+                    $keys = $options ? array_column($options, 'slug') : false;
+                ?>
+                <optgroup label="<?php echo $arr['name'] ?>">
+                    <?php foreach ($arr['children'] as $child) { 
+                            $class = "";
 
-            <?php if (isset($arr['children'])) {
-                if(isset($options['children'])) {
-                    $children = $options['children'];
-                }
+                            if(isset($keys) && is_array($keys)) {
+                                foreach($keys as $v) {
+                                    if($child['slug'] == $v) {
+                                        $class = "selected";
+                                    }
+                                }
+                            }
+                        ?>
+                        <option value="<?php echo $child['slug'] ?>" onclick="updateTags('<?php echo $child['slug'] ?>', '<?php echo $child['name'] ?>', '#<?php echo $arr['slug'] ?>-tags-<?php echo $key ?>', this, <?php echo $key ?>, '<?php echo $arr['slug'] ?>')" class="<?php echo $class ?>"><?php echo $child['name'] ?></option>
+                    <?php } ?>
+                </optgroup>
+            <?php } else {
+                        $class = "";
+
+                        if(isset($keys) && is_array($keys)) {
+                            foreach($keys as $v) {
+                                if($child['slug'] == $v) {
+                                    $class = "selected";
+                                }
+                            }
+                        }
             ?>
-                <label class="title"><strong><?php echo $arr['name'] ?></strong></label>
-                <?php
-                foreach ($arr['children'] as $child) {
-                ?>
-                    <ul>
-                        <?php echo $this->buildOptions($child, $key, $inputName . '[children]', $children[$child['slug']] ?? null); ?>
-                    </ul>
-                <?php }
-            } else {
-                ?>
-                    <label for="checkbox_<?php echo $arr['slug'] ?>"><?php echo $arr['name'] ?></label>
-                    <input type="checkbox" id="checkbox_<?php echo $arr['slug'] ?>" name="<?php echo $inputName ?>[value]" <?php echo (isset($options) && isset($options['value']) && boolval($options['value']) ? 'checked' : '') ?>>
-            <?php
-            }
-            ?>
-        </li>
+                <option value="<?php echo $arr['slug'] ?>" onclick="updateTags('<?php echo $arr['slug'] ?>', '<?php echo $arr['name'] ?>', '#<?php echo $arr['slug'] ?>-tags-<?php echo $key ?>', this, <?php echo $key ?>, '<?php echo $arr['slug'] ?>')" class="<?php echo $class ?>"><?php echo $arr['name'] ?></option>
+            <?php }
+        ?>
     <?php
     }
 
@@ -130,6 +136,26 @@ class Form extends Base
 
         return $fnBuilder($groupedData[$rootId]);
     }
+
+    private function array_some($arr, $key, $val = null)
+	{
+
+		if (!is_null($val)) {
+			foreach ($arr as $a) {
+				if (isset($a[$key]) && $a[$key] = $val) {
+					return true;
+				}
+			}
+		} else {
+			foreach ($arr as $a) {
+				if ($a == $key) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
 
     public function doMetaBoxes($post)
     {
@@ -168,12 +194,10 @@ class Form extends Base
         $tax_terms = json_decode(json_encode($terms), true);
 
         $mapped = $this->buildTree($tax_terms);
-
     ?>
         <section class="form-wrap">
             <table class="form-table">
                 <tbody id="inputs">
-
                     <?php if (isset($form_inputs[0])) { ?>
                         <?php foreach ($form_inputs[0] as $key => $input) { ?>
                             <tr id="input_<?php echo $key ?>">
@@ -189,11 +213,103 @@ class Form extends Base
 
                                 <td>
                                     <label for="type">Type</label>
-                                    <select id="input_type_<?php echo $key ?>" name="form_inputs[<?php echo $key ?>][input_type]" onchange="setOptions(this, <?php echo $key ?>)">
+                                    <select id="input_type_<?php echo $key ?>" name="form_inputs[<?php echo $key ?>][input_type]" onchange="updateSelectedTerm(this.value, '#options-selector-<?php echo $key ?>', <?php echo $key ?>)">
                                         <?php foreach ($options as $value => $label) { ?>
                                             <option value="<?php echo $value ?>" <?php echo ($input['input_type'] == $value ? 'selected' : '') ?>><?php echo $label ?></option>
                                         <?php } ?>
                                     </select>
+                                </td>
+
+                                <td id="options-selector-<?php echo $key ?>" <?php echo(isset($input['input_type']) && isset($requiresSelections[$input['input_type']]) ? '' : 'style="display: none"') ?>>
+                                    <label for="options-selector">Select Option Group</label>
+                                    
+                                    <select id="options-selector" name="form_inputs[<?php echo $key ?>][option_group]" onchange="updateOptions('#' + this.value + '-<?php echo $key ?>', '#input_<?php echo $key ?>', `#${this.value}-tags-<?php echo $key ?>`)">
+                                        <option value="uncategorized" <?php echo(isset($input['option_group']) && $input['option_group'] == 'uncategorized' ? 'selected' : '') ?>>Uncategorized</option>
+                                        <?php foreach ($mapped as $map) {
+                                                if(isset($map['children'])) {
+                                             ?>
+                                            <option value="<?php echo $map['slug'] ?>" <?php echo (isset($input['option_group']) && $input['option_group'] == $map['slug'] ? 'selected' :  '') ?>><?php echo $map['name'] ?></option>
+                                        <?php 
+                                                }
+                                            } ?>
+                                    </select>
+                                </td>
+
+                                    <?php foreach ($mapped as $map) { 
+                                        $selected = isset($requiresSelections[$input['input_type']]) ? $map['slug'] == $input['option_group'] : false;
+                                        
+                                        if(isset($map['children'])) {
+                                        ?>
+                                        <td class="options-dropper" id="<?php echo $map['slug'] . '-' . $key ?>" <?php echo ($selected ? '' : 'style="display: none"') ?>>
+                                            <input placeholder="Search Options" type="search" id="search-<?php echo $key ?>" oninput='updateSelections(this.value, "#<?php echo $map["slug"] . "-" . $key ?> #<?php echo $map["slug"] ?>-dropper-select-<?php echo $key ?>")'>
+
+                                            <div class="tags" id="<?php echo $map['slug'] ?>-tags-<?php echo $key ?>">
+                                                <?php if(isset($input['options']) && is_array($input['options']) && $map['slug'] === $input['option_group'] ) {
+                                                    foreach($input['options'] as $k => $tag) {
+                                                ?>
+                                                    <span id="<?php echo $tag['slug'] ?>" onclick="removeTag('<?php echo $tag['slug'] ?>', '#input_<?php echo $key ?> #<?php echo $map['slug'] ?>-dropper-select-<?php echo $key ?> option', '#<?php echo $map['slug'] ?>-tags-<?php echo $key ?>')">
+                                                        <?php echo $tag['name'] ?>
+                                                        <input type="text" value="<?php echo $tag['slug'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][slug]">
+                                                        <input type="text" value="<?php echo $tag['name'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][name]">
+                                                    </span>
+                                                <?php }
+                                                } ?>
+                                            </div>
+
+                                            <select id="<?php echo $map['slug'] ?>-dropper-select-<?php echo $key ?>" multiple>
+                                                <?php echo $this->buildOptions($map, $key, isset($input['options']) ? $input['options'] : false); ?>                                            
+                                            </select>
+
+                                            <span>click on the option(s) you want to add</span>
+                                        </td>
+                                    <?php }
+                                    } ?>
+                                    
+                                    <?php $selected = isset($requiresSelections[$input['input_type']]) ? "uncategorized" == $input['option_group'] : false; ?>
+
+                                    <td class="options-dropper" id="<?php echo 'uncategorized-' . $key ?>" <?php echo ($selected ? '' : 'style="display: none"') ?>>
+                                        <input placeholder="Search Options" type="search" id="search-<?php echo $key ?>" oninput='updateSelections(this.value, "#<?php echo "uncategorized-" . $key ?> #uncategorized-dropper-select-<?php echo $key ?>")'>
+                                        
+                                        <div class="tags" id="uncategorized-tags-<?php echo $key ?>">
+                                            <?php if(isset($input['options']) && is_array($input['options']) && 'uncategorized' == $input['option_group'] ) {
+                                                foreach($input['options'] as $k => $tag) {
+                                            ?>
+                                                <span id="<?php echo $tag['slug'] ?>" onclick="removeTag('<?php echo $tag['slug'] ?>', '#input_<?php echo $key ?> #uncategorized-dropper-select-<?php echo $key ?> option', '#uncategorized-tags-<?php echo $key ?>')">
+                                                    <?php echo $tag['name'] ?>
+                                                    <input type="text" value="<?php echo $tag['slug'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][slug]">
+                                                    <input type="text" value="<?php echo $tag['name'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][name]">
+                                                </span>
+                                            <?php }
+                                            } ?>
+                                        </div>
+
+                                        <select id="uncategorized-dropper-select-<?php echo $key ?>" multiple>
+                                            <optgroup label="Uncategorized">
+                                                <?php 
+                                                $keys = array_column($tax_terms, 'parent');
+                                                
+                                                $options_keys = isset($input['options']) && is_array($input['options']) ? array_column($input['options'], 'slug') : false;
+
+                                                foreach($tax_terms as $tax) {
+                                                    if($keys) {
+                                                        $hasKids = $this->array_some($keys, $tax['term_id']);
+                                                        $class = $options_keys ? $this->array_some($options_keys, $tax['slug']) ? 'selected' : false : false;
+                                                        if($tax['parent'] == 0 && $hasKids == false) {  
+                                                    ?>
+                                                        <option value="<?php echo $tax['slug'] ?>" onclick="updateTags('<?php echo $tax['slug'] ?>', '<?php echo $tax['name'] ?>', '#uncategorized-tags-<?php echo $key ?>', this, <?php echo $key ?>, '<?php echo $tax['slug'] ?>', true)" class="<?php echo $class ?? '' ?>"><?php echo $tax['name'] ?></option>                                           
+                                                    <?php 
+                                                        }
+                                                    }
+                                                }?>
+                                            </optgroup>
+                                        </select>
+
+                                        <span>click on the option(s) you want to add</span>
+                                    </td>
+                              
+                                <td>
+                                    <label for="per_attendee">Per Attendee?</label>
+                                    <input name="form_inputs[<?php echo $key ?>][per_attendee]" id="per_attendee" type="checkbox" <?php echo (isset($input['per_attendee']) ? 'checked' : '') ?>>
                                 </td>
 
                                 <td>
@@ -201,30 +317,7 @@ class Form extends Base
                                     <input name="form_inputs[<?php echo $key ?>][required]" id="required" type="checkbox" <?php echo (isset($input['required']) ? 'checked' : '') ?>>
                                 </td>
 
-
-                                <td id="taxonomy-meta-wrapper-<?php echo $key ?>" style="<?php echo (key_exists($input['input_type'], $requiresSelections) ? '' : 'display: none') ?>">
-                                    <div class="options" id="<?php echo ("options-" . $key) ?>" name="form_inputs[<?php echo $key ?>][options]">
-                                        <select id="options-selecter-<?php echo $key ?>" onchange="switchOption(this.value, <?php echo $key ?>)">
-                                            <option value="">Select an Option</option>
-                                            <?php foreach ($mapped as $map) { ?>
-                                                <option value="<?php echo $map['slug'] . '-' . $key ?>" <?php echo (isset($input['options'][$map['slug']]) ? 'selected' : '') ?>><?php echo $map['name'] ?></option>
-                                            <?php } ?>
-                                        </select>
-
-                                        <?php
-                                        foreach ($mapped as $map) {
-                                            $mapOptions = isset($input['options'][$map['slug']]) ? $input['options'][$map['slug']] : null;
-                                        ?>
-                                            <ul id="<?php echo $map['slug'] ?>-<?php echo $key ?>" <?php echo (isset($input['options'][$map['slug']]) ? '' : 'style="display: none"') ?>>
-                                                <?php echo $this->buildOptions($map, $key, "form_inputs[" . $key . "][options]", $mapOptions); ?>
-                                            </ul>
-                                        <?php
-                                        }
-                                        ?>
-                                    </div>
-                                </td>
-
-                                <td>
+                                <td class="delete">
                                     <input class="button" type="button" value="Delete" onclick="removeInput('#input_<?php echo $key ?>')">
                                 </td>
                             </tr>
@@ -241,106 +334,256 @@ class Form extends Base
         </section>
 
         <script>
-            <?php
-            $inputCount = (isset($form_inputs[0]) ? (count($form_inputs[0]) > 0 ? count($form_inputs[0]) : 1) : 1);
-            ?>
-            var inputCount = <?php echo (isset($form_inputs[0]) ? count($form_inputs[0]) : 0) ?>;
+            <?php echo "var options = " . json_encode($requiresSelections) . ";" ?>
+
+            var inputCount = <?php echo (isset($form_inputs[0]) ? count($form_inputs[0]) + 1 : 0) ?>;
+
+            function toggleSelectAll(id, target) {
+                var parent = jQuery(id);
+
+                // check if parent exist and get all child inputs and toggle them selected or not(disable or not)
+                if(parent) {
+                    var inputs = jQuery('input', parent);
+
+                    if(inputs) {
+                        for(const child of inputs) {
+                            if(child.type === 'text') {
+                                if(!target.checked) {
+                                    child.setAttribute('disabled', true)
+                                } else {
+                                    child.removeAttribute('disabled')
+                                }
+                            } else {
+                                if(!target.checked) {
+                                    child.classList.remove('selected');
+                                } else {
+                                    child.classList.add('selected');
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+             
+            function toggleDisabledAttribute(id, target) {
+                var parent = jQuery('#parent_' + id);
+                var slug = jQuery('#slug_' + id);
+
+                var parentDisabled = parent.attr('disabled');
+                var slugDisabled = slug.attr('disabled');
+                
+                if (parentDisabled) {
+                    parent.removeAttr('disabled');
+                    slug.removeAttr('disabled');
+                } else {
+                    parent.attr('disabled', true);
+                    slug.attr('disabled', true);
+                }
+
+                target.classList.toggle('selected');
+            }
 
             function removeInput(id) {
                 jQuery(id).remove();
                 inputCount--;
             }
 
-            <?php echo "var options = " . json_encode($requiresSelections) . ";" ?>
+            function updateSelectedTerm(value, id, key) {
+                var selector = jQuery(id);
+
+                var selectEl = jQuery('select', selector)
+
+                var t = jQuery(`#input_${key} .options-dropper .tags`)
+
+                if(typeof options[value] !== 'undefined') {
+                    selector.attr('style', 'display: auto')
+                    selectEl.removeAttr('disabled')
+                } else {
+                    selector.attr('style', 'display: none')
+                    selectEl.attr('disabled', true)
+                    for(const tag of t) {
+                        t.html('');
+                    }
+                
+                }
+
+                var show = jQuery(`#${selectEl.val()}-${key}`)
+
+                const selectOptions = jQuery(`#${selectEl.val()}-${key} select option`)
+
+                if(selector.attr('style') == 'display: auto') {
+                    show.attr('style', 'display: auto')
+                } else {
+                    show.attr('style', 'display: none')
+                    for(const option of selectOptions) {
+                        option.classList.remove('selected')
+                    }
+                }
+            }
+
+            let tags = [];
+
+            function updateOptions(id, baseId, tagsId){
+                // remove existing tags before updating if tags exist
+                tags = [];
+
+                if(tagsId) {
+                    const t = jQuery(tagsId)
+                    for(const tag of t.children()) {
+                        tag.remove();
+                    }
+                }
+
+                var selected = jQuery(id);
+
+                selected.attr('style', 'display: auto');
+
+                var base = jQuery(baseId)
+
+                var notSelectedItems = jQuery('.options-dropper', base).not(selected);
+
+                notSelectedItems.each((item) => {
+                    notSelectedItems[item].style.display = 'none';
+
+                    for(const child of notSelectedItems[item].children) {
+                        const inputs = jQuery('input', child)
+                        const selections = jQuery('option', child)
+
+                        for(const input of inputs) {
+                            if(input.type === 'text') {
+                                input.setAttribute('disabled', true)
+                            }
+                        }
+
+                        for(const option of selections) {
+                            option.classList.remove('selected')
+                        }
+                    }
+                })
+
+                const children = selected.children();
+
+                for(const child of children) {
+                    const inputs = jQuery('input', child)
+
+                    for(const input of inputs) {
+                        if(input.type === 'text') {
+                            input.removeAttribute('disabled')
+                        }
+                    }
+                }
+            }
+
+            function updateSelections(value, id) {
+                const parent = jQuery(id)
+
+                if(parent) {
+                    const children = jQuery('option', parent)
+
+                    for(const child of children) {
+                        if(child.value?.toLowerCase()?.startsWith(value.toLowerCase()) && value !== '' && value !== null) {
+                            child.setAttribute('style', 'display: auto');
+                        } else if(!child.value?.toLowerCase()?.startsWith(value.toLowerCase()) && value !== '') {
+                            child.setAttribute('style', 'display: none');
+                        } else if(value === "") {
+                            child.setAttribute('style', 'display: auto');
+                        } else {
+                            child.setAttribute('style', 'display: none');
+                        }
+                    }
+                }
+            }
+
+            function updateTags(slug, name, id, target, key, selectId, uncategorized = false) {
+                const tagWrapper = jQuery(id);
+
+                const temp = [];
+                    
+                for(const tag of tagWrapper.children()) {
+                    const inputs = jQuery('input', tag)
+                        
+                    temp.push({
+                        slug: inputs[0]?.value,
+                        name: inputs[1]?.value
+                    })
+                }
+
+                tags = temp;
+
+                target.classList.toggle('selected');
+
+                if(tags.some(tag => tag.slug === slug)) {
+                    tags = tags.filter(tag => tag.slug !== slug);
+                } else {
+                    tags.push({slug, name})
+                }
+                
+                tagWrapper.html(tags.map((tag, i) => `
+                    <span id="${tag.slug}" onclick="removeTag('${tag.slug}', '#input_${key} #${uncategorized ? 'uncategorized' : selectId}-dropper-select-${key} option', '${id}')">
+                        ${tag.name}
+                        <input type="text" value="${tag.slug}" style="display: none" id="${tag.slug}" name="form_inputs[${key}][options][${i}][slug]">
+                        <input type="text" value="${tag.name}" style="display: none" id="${tag.slug}" name="form_inputs[${key}][options][${i}][name]">
+                    </span>
+                `).join(''));
+            }
+
+            function removeTag(slug, base, tagsId) {
+                if(tagsId) {
+                    const t = jQuery(tagsId)
+                    for(const tag of t.children()) {
+                        tags.push({
+                            slug: t.id,
+                            name: t.innerHTML
+                        })
+                    }
+                }
+
+                tags = tags.filter(tag => tag.slug !== slug);
+                tag = jQuery(`${tagsId} #${slug}`);
+                tag.remove();
+
+                if(base) {
+                    const options = jQuery(base)
+
+                    for(const o of options) {
+                        if(o.value === slug) {
+                            o.classList.remove('selected')
+                        }
+                    }
+                }
+            }
 
             var selected;
 
-            function setOptions(target, id) {
-                var keys = Object.keys(options);
-
-                var option = jQuery(`#input_${id} .options`);
-
-                var allOptionList = jQuery(`#options-${id} > ul`);
-
-                var tax = jQuery(`#taxonomy-meta-wrapper-${id}`);
-
-                var allInputs = jQuery(`#options-${id} #${target.value} input`);
-
-                var allOptionsInputs = jQuery(`#options-${id} input`);
-
-                var selector = jQuery(`#options-selecter-${id}`);
-
-                if (keys.some((k) => k === target.value)) {
-                    option.attr('style', 'display: auto')
-                    tax.attr('style', 'display: auto');
-                } else {
-                    option.attr('style', 'display: none')
-                    tax.attr('style', 'display: none');
-
-                    selector.val(null);
-
-                    for (var input of allOptionsInputs) {
-                         input.setAttribute('disabled', true)
-                    }
-
-                    for (var element of allOptionList) {
-                        element.setAttribute('style', 'display: none')
-                    }
-                }
-            }
-
-            function switchOption(slug, id) {
-                var all = jQuery(`#options-${id} > ul`);
-
-                for (var element of all) {
-                    var allInputs = jQuery(`#${element.id} input`);
-
-                    if (element.id === slug) {
-                        element.setAttribute('style', 'display: auto')
-
-                        for (var input of allInputs) {
-                            input.removeAttribute('disabled')
-                        }
-                    } else {
-                        element.setAttribute('style', 'display: none')
-
-                        for (var input of allInputs) {
-                            input.setAttribute('disabled', true)
-                        }
-                    }
-                }
-            }
-
             function buildOptions(arr, key, name) {
-                const inputName = `${name}[${arr.slug}]`;
-                let children = null;
+                if(!arr || arr === null) return
+                
                 let output = '';
 
-                output += '<li>';
-                output += `<input type="text" name="${inputName}[label]" style="display: none" value="${arr.name}" disabled>`;
-                output += `<input type="text" name="${inputName}[slug]" style="display: none" value="${arr.slug}" disabled>`;
-
                 if (arr.children) {
-                    output += `<label class="title"><strong>${arr.name}</strong></label>`;
-                    arr.children.forEach((child) => {
-                    output += '<ul>';
-                    output += buildOptions(child, key, `${inputName}[children]`, children ? children[child.slug] : null);
-                    output += '</ul>';
-                    });
-                } else {
-                    output += `<label for="checkbox_${arr.slug}">${arr.name}</label>`;
-                    output += `<input type="checkbox" id="checkbox_${arr.slug}" name="${inputName}[value]" disabled>`;
-                }
+                    let children = arr.children;
 
-                output += '</li>';
+                    output += `<optgroup label="${arr.name}">`;
+
+                    for (const child of children) {
+                        output += `<option value="${child.slug}" onclick="updateTags('${child.slug}', '${child.name}', '#${arr.slug}-tags-${key}', this, ${key}, '${arr.slug}')">${child.name}</option>`;
+                    }
+
+                    output += '</optgroup>';
+                } else {
+                    output += `<option value="${arr.slug}" onclick="updateTags('${arr.slug}', '${arr.name}', '#${arr.slug}-tags-${key}', this, ${key}, '${arr.slug}')">${arr.name}</option>`;
+                }
 
                 return output;
             }
 
 
             jQuery(document).ready(function($) {
-                $('#add-button').click(() => {
+                $(".multidatalist").focusin ( function() { $(this).attr("type","email"); });    
+                $(".multidatalist").focusout( function() { $(this).attr("type","textbox"); });
 
+                $('#add-button').click(() => {
+                    console.log('testing')
                     $('#inputs').append(`
                         <tr id="input_${inputCount}">
                             <td id="label_${inputCount}">
@@ -353,13 +596,86 @@ class Form extends Base
                                 <input type="text" id="helpText" name="form_inputs[${inputCount}][help_text]">
                             </td>
 
-                            <td id="input_type_wrap_${inputCount}">
+                            <td>
                                 <label for="type">Type</label>
-                                <select id="input_type_${inputCount}" name="form_inputs[${inputCount}][input_type]" onchange="setOptions(this, ${inputCount})">
-                                <?php foreach ($options as $value => $label) {  ?>
-                                    <option value="<?php echo $value ?>"><?php echo $label ?></option>
-                                <?php } ?>
+                                <select id="input_type_${inputCount}" name="form_inputs[${inputCount}][input_type]" onchange="updateSelectedTerm(this.value, '#options-selector-${inputCount}', ${inputCount})">
+                                    <?php foreach ($options as $value => $label) { ?>
+                                        <option value="<?php echo $value ?>"><?php echo $label ?></option>
+                                    <?php } ?>
                                 </select>
+                            </td>
+
+                            <td id="options-selector-${inputCount}" style="display: none">
+                                <label for="options-selector">Select Option Group</label>
+                                    
+                                <select id="options-selector" value="uncategorized" name="form_inputs[${inputCount}][option_group]" onchange="updateOptions('#' + this.value + '-${inputCount}', '#input_${inputCount}', '#' + this.value + '-tags-${inputCount}')">
+                                    <option value="uncategorized">Uncategorized</option>
+                                    <?php foreach ($mapped as $map) { 
+                                        if(isset($map['children'])) {
+                                    ?>
+                                         <option value="<?php echo $map['slug'] ?>"><?php echo $map['name'] ?></option>
+                                    <?php 
+                                        }
+                                    } ?>
+                                </select>
+                            </td>
+
+                            <?php foreach ($mapped as $map) {
+                                if(isset($map['children'])) { ?>
+                                <td class="options-dropper" id="<?php echo $map['slug'] ?>-${inputCount}" style="display: none">
+                                    <input placeholder="Search Options" type="search" id="search-${inputCount}" oninput='updateSelections(this.value, "#<?php echo $map["slug"] ?>-${inputCount} #<?php echo $map['slug'] ?>-dropper-select-${inputCount}", <?php echo json_encode($map) ?>)'>
+
+                                    <div class="tags" id="<?php echo $map['slug'] ?>-tags-${inputCount}">
+                                        <?php if(isset($input['options']) && is_array($input['options'])) {
+                                            foreach($input['options'] as $k => $tag) {
+                                            ?>
+                                                <span id="<?php echo $tag['slug'] ?>" onclick="removeTag('<?php echo $tag['slug'] ?>', '#input_${inputCount} #<?php echo $map['slug'] ?>-dropper-select-${inputCount} option', '#<?php echo $map['slug'] ?>-tags-${inputCount}')">
+                                                    <?php echo $tag['name'] ?>
+                                                    <input type="text" value="<?php echo $tag['slug'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][slug]">
+                                                    <input type="text" value="<?php echo $tag['name'] ?>" style="display: none" id="<?php echo $tag['slug'] ?>" name="form_inputs[<?php echo $key ?>][options][<?php echo $k ?>][name]">
+                                                </span>
+                                            <?php }
+                                        } ?>
+                                     </div>
+
+                                    <select id="<?php echo $map['slug'] ?>-dropper-select-${inputCount}" multiple>
+                                        ${buildOptions(<?php echo json_encode($map) ?>, inputCount, `<?php echo(isset($input['options']) && is_array($input['options']) ? $input['options'] : false) ?>`)}
+                                    </select>
+
+                                    <span>click on the option(s) you want to add</span>
+                                </td>
+                            <?php } 
+                        } ?>    
+                            
+                            <td class="options-dropper" id="uncategorized-${inputCount}" style="display: none">
+                                <input placeholder="Search Options" type="search" id="search-${inputCount}" oninput='updateSelections(this.value, "#uncategorized-${inputCount} #uncategorized-dropper-select-${inputCount}")'>
+
+                                <div class="tags" id="uncategorized-tags-${inputCount}"></div>
+
+                                <select id="uncategorized-dropper-select-${inputCount}" multiple>
+                                    <optgroup label="Uncategorized">
+                                        <?php 
+                                        $keys = array_column($tax_terms, 'parent');
+
+                                        foreach($tax_terms as $tax) {
+                                            if($keys) {
+                                                $hasKids = $this->array_some($keys, $tax['term_id']);
+                                                if($tax['parent'] == 0 && $hasKids == false) {  
+                                            ?>
+                                                <option value="<?php echo $tax['slug'] ?>" onclick="updateTags('<?php echo $tax['slug'] ?>', '<?php echo $tax['name'] ?>', '#uncategorized-tags-${inputCount}', this, ${inputCount}, '<?php echo $tax['slug'] ?>', true)"><?php echo $tax['name'] ?></option>                                           
+                                            <?php 
+                                                }
+                                            }
+                                        }?>
+                                    </optgroup>
+                                </select>
+
+                                <span>click on the option(s) you want to add</span>
+                            </td>
+
+                            <td>
+                                <label for="per_attendee">Per Attendee?</label>
+                                <input name="form_inputs[${inputCount}][per_attendee]" id="per_attendee" type="checkbox">
                             </td>
 
                             <td id="required_${inputCount}">
@@ -367,29 +683,7 @@ class Form extends Base
                                 <input name="form_inputs[${inputCount}][required]" id="required" type="checkbox">
                             </td>
 
-                            <td id="taxonomy-meta-wrapper-${inputCount}" style="display: none">
-                                <div class="options" id="<?php echo "options-" ?>${inputCount}" style="display: none" name="form_inputs[${inputCount}][options]">
-                                        <select id="options-selecter-${inputCount}"  onchange="switchOption(this.value, ${inputCount})">
-                                            <option value="">Select an Option</option>
-                                            <?php foreach ($mapped as $map) { ?>
-                                                <option value="<?php echo $map['slug'] . "-" ?>${inputCount}"><?php echo $map['name'] ?></option>
-                                            <?php } ?>
-                                        </select>
-                                        <?php
-
-                                        foreach ($mapped as $map) {
-                                        ?>
-                                            <ul id="<?php echo $map['slug'] ?>-${inputCount}" style="display: none">
-                                                ${buildOptions(<?php echo json_encode($map) ?>, inputCount, `form_inputs[${inputCount}][options]`)}
-                                            </ul>
-                                            <?php
-                                        }
-                                            ?>
-                                    
-                                </div>
-                            </td>
-
-                            <td>
+                            <td class="delete">
                                 <input class="button" type="button" value="Delete" onclick="removeInput('#input_${inputCount}')">
                             </td>
                         </tr>
@@ -399,10 +693,17 @@ class Form extends Base
                 })
 
                 $('#inputs').sortable();
+                $('.tags').sortable();
             })
         </script>
 
         <style>
+            .form-table {
+                display: block;
+                width: 100%;
+                padding: 2em 5%;
+            }
+
             .add-form-field {
                 width: 100%;
                 height: max-content;
@@ -418,46 +719,118 @@ class Form extends Base
                 align-self: center;
             }
 
-            .options {
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-                align-items: center;
+            tr {
+                display: grid;
+                grid-template-columns: repeat(8, 1fr);
+                align-items: space-between;
+                padding: 1em;
+                background-color: rgba(0,0,0,0.01);
+                border-radius: 3px;
+                margin-bottom: 1em;
+                box-shadow: 0px 0px 4px 1px rgba(0,0,0,0.035);
             }
 
-            .options .option-select {
-                background-color: whitesmoke;
-                border-radius: 3px;
-                padding: 0.5em;
-                width: calc(100% - 1em);
-                margin: auto;
+            tr td.delete {
+                grid-column: 8 / span 1;
+            }
+
+            @media screen and (max-width: 900px) {
+                .form-table tbody {
+                    width: 100%;
+                    display: block;
+                }
+
+                tr {
+                    display: flex;
+                    flex-direction: column;
+                    width: 100%;
+                }
+
+                tr td.delete {
+                    grid-column: unset;
+                }
+            }
+
+            td.options-dropper {
+                min-width: max-content;
+                overflow: hidden;
+                border-radius: 5px;
+                display: flex;
+                flex-direction: column;
+                margin: 0;
+            }
+
+            td.options-dropper > input {
                 margin-bottom: 0.5em;
             }
 
-            .options>ul {
-                width: 100%;
-                margin: 0;
-                margin-top: 0.5em;
-                padding: 1em;
-                background-color: whitesmoke;
+            td.options-dropper select[multiple] {
+                min-height: 100px;
+            }
+
+            td.options-dropper option {
                 border-radius: 3px;
+                margin-bottom: 0.2rem;
             }
 
-            .options>ul ul {
-                margin-left: 1em;
+            td.options-dropper select:hover {
+                color: #2c3338;
             }
 
-            .options label {
+            option:active, option:focus {
+                background-color: gray;
+                color: white;
+                cursor: grabbing;
+            }
+
+            option:not(.selected) {
+                font-weight: 500;
+            }
+
+            option:not(.selected):hover {
+                background-color: gray;
+                color: white;
+            }
+
+            option.selected {
+                background-color: lightgray;
+                color: white;
+            }
+
+            option.selected:hover {
+                background-color: red;
+                opacity: 1;
+            }
+
+            option.selected:focus {
+                background: red;
+            }
+
+            .tags {
+                padding: 0.1em;
                 display: flex;
                 flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
+                flex-wrap: wrap;
             }
 
-            .options label input {
-                margin-left: 1em;
+            .tags span {
+                background-color: #007cba;
+                color: white;
+                padding: 0 0.5em;
+                margin: 0.1em;
+                border-radius: 3px;
+                cursor: pointer;
+                transition: background-color 0.05s ease-in-out;
             }
+
+            .tags span:hover {
+                background-color: red;
+            }
+
+            .tags span:active {
+                cursor: grabbing;
+            }
+
         </style>
 <?php
     }
@@ -483,15 +856,29 @@ class Form extends Base
         $filtered = [];
 
         // Sanitize inputs before saving meta
-        foreach ($form_inputs_meta as $value) {
+        foreach ($form_inputs_meta as $key => $value) {
             if (is_array($value)) {
-                $filtered[] = $value;
-            } else {
-                foreach ($value as $v) {
-                    $filtered[][] = sanitize_text_field($v);
+                foreach ($value as $k => $v) {
+                    if(is_array($v)) {
+                        foreach($v as $i => $j) {
+                            if(is_array($j)) {
+                                foreach($j as $l => $m) {
+                                    $filtered[$key][$k][$i][$l] = sanitize_text_field($m);
+                                }
+                            } else {
+                                $filtered[$key][$k][$i] = sanitize_text_field($j);
+                            }
+                        }
+                    } else {
+                        $filtered[$key][$k] = sanitize_text_field($v);
+                    }
                 }
+            } else {
+                $filtered[$key] = sanitize_text_field($value);
             }
         }
+
+        // wp_send_json($filtered);
 
         update_post_meta($post_id, 'form_inputs', $filtered);
     }
