@@ -10,7 +10,7 @@
 
 declare(strict_types=1);
 
-namespace FormEditor\Types;
+namespace FormEditor\General\Types;
 
 use FormEditor\Classes\Base;
 

@@ -21,7 +21,15 @@ function FormEditor_page()
 function loadClasses()
 {
 	$base = 'FormEditor';
-	$files = glob(__DIR__ . '/**/*.php', GLOB_BRACE);
+	$iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(__DIR__));
+	$files = [];
+
+	foreach($iterator as $iter) {
+		if($iter->isFile()) {
+			$files[] = $iter->getPathname();
+		}
+	}
+
 	$loaded_classes  = [];
 
 	foreach ($files as $file) {
